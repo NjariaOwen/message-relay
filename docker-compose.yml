@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postuser
+      - POSTGRES_PASSWORD=postpassword
+      - POSTGRES_DB=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    
+
+  backend:
+    build: ./backend
+    depends_on:
+      - database
+    environment:
+      - DB_USER=postuser
+      - DB_PASSWORD=postpassword
+      - DB_NAME=postgres
+      - DB_PORT=5432
+      - DB_HOST=database
+    ports:
+      - "8080:8080"
+      
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+
+  nodejs:
+    build: ./node-ui
+    ports:
+      - "5001:5001"
+    depends_on:
+      - redis
+
+  pythonui:
+    build: ./python-ui
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+  
+volumes:
+  pgdata:
