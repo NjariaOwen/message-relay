@@ -48,7 +48,7 @@ The system uses a hub-and-spoke model where the UIs interact only with Redis, an
 ### Message Flow:
 1. **UI (Python/Node)** sends a message $\rightarrow$ Pushed to **Redis**.
 2. **Go Backend** polls **Redis** $\rightarrow$ Saves to **Postgres** $\rightarrow$ Pushes back to **Redis** for the recipient.
-3. **Recipient UI** pops the message from **Redis** $\rightarrow$ Displays to user.
+3. **Recipient UI** polls the backend API for new messages $\rightarrow$ Updates chat in real-time.
 
 ---
 
@@ -66,7 +66,30 @@ The system uses a hub-and-spoke model where the UIs interact only with Redis, an
 
 ## ⚙️ Setup Instructions
 
-### 1. PostgreSQL Configuration
+### Environment Variables
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` and fill in your actual database credentials (do not commit `.env` to git).
+
+### Docker Setup (Recommended)
+1. Ensure Docker and Docker Compose are installed.
+2. Run the following command to build and start all services:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. Access the UIs:
+   - User A (Python): http://localhost:5000
+   - User B (Node.js): http://localhost:5001
+   - Backend API: http://localhost:8080
+4. To stop: `docker-compose down`
+5. To view logs: `docker-compose logs -f [service-name]` (e.g., `nodejs`)
+
+### Manual Setup (Alternative)
+If you prefer not to use Docker, follow these steps:
+
+#### 1. PostgreSQL Configuration
 Run the following commands in your Postgres terminal to set up the environment:
 
 ```sql
@@ -75,14 +98,14 @@ CREATE USER postgres WITH PASSWORD 'postgres';
 GRANT ALL PRIVILEGES ON DATABASE messages TO postgres;
 ```
 
-### 2. Infrastructure
+#### 2. Infrastructure
 Start the Redis server:
 
 ```bash
 redis-server
 ```
 
-### 3. Start Go Backend
+#### 3. Start Go Backend
 
 ```bash
 cd backend
@@ -91,7 +114,7 @@ go get github.com/lib/pq
 go run main.go
 ```
 
-### 4. Start Python UI (User A)
+#### 4. Start Python UI (User A)
 
 ```bash
 cd python-ui
@@ -100,7 +123,7 @@ python app.py
 # Running on http://localhost:5000
 ```
 
-### 5. Start Node UI (User B)
+#### 5. Start Node UI (User B)
 
 ```bash
 cd node-ui
@@ -114,13 +137,12 @@ node index.js
 ## 🧪 Testing the Flow
 
 1. **Send:** Open the Python UI (http://localhost:5000) and send a message to User B.
-2. **Receive:** Refresh the Node UI (http://localhost:5001) to see the message.
+2. **Receive:** The Node UI (http://localhost:5001) will update automatically (no refresh needed).
 3. **Reply:** Send a reply from the Node UI back to User A.
-4. **Verify DB:** Check the database to confirm the message was saved:
-
-```sql
-SELECT * FROM messages;
-```
+4. **Verify DB:** Check the database logs or connect to Postgres in the container:
+   ```bash
+   docker-compose exec database psql -U postuser -d postgres -c "SELECT * FROM messages;"
+   ```
 
 ---
 

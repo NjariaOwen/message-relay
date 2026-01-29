@@ -2,10 +2,8 @@ version: "3.8"
 services:
   database:
     image: postgres:16-alpine
-    environment:
-      - POSTGRES_USER=postuser
-      - POSTGRES_PASSWORD=postpassword
-      - POSTGRES_DB=postgres
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
     
@@ -14,12 +12,8 @@ services:
     build: ./backend
     depends_on:
       - database
-    environment:
-      - DB_USER=postuser
-      - DB_PASSWORD=postpassword
-      - DB_NAME=postgres
-      - DB_PORT=5432
-      - DB_HOST=database
+    env_file:
+      - .env
     ports:
       - "8080:8080"
       
