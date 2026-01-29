@@ -3,7 +3,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const Redis = require("ioredis");
-const fetch = require("node-fetch");
+// Prefer the built-in global fetch (Node 18+). If not available, dynamically import node-fetch.
+let fetchFn;
+if (typeof fetch === "function") {
+    fetchFn = fetch;
+} else {
+    fetchFn = (...args) => import('node-fetch').then(m => m.default(...args));
+}
 
 const app = express();
 const redis = new Redis({ host: "redis", port: 6379 });
@@ -141,16 +147,24 @@ const HTML = (messages) => `
 app.get("/", async (req, res) => {
     let messages = [];
     try {
-        const resp = await fetch(BACKEND_API + "?user=B&peer=A");
-        if (resp.ok) {
-            const data = await resp.json();
-            // Map backend fields to expected UI fields
-            messages = Array.isArray(data) ? data.map(msg => ({
+        const resp = await fetchFn(BACKEND_API + "?user=B&peer=A");
+        const raw = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            data = null;
+        }
+        // Map backend fields to expected UI fields
+        if (Array.isArray(data)) {
+            messages = data.map(msg => ({
                 from: msg.from || msg.from_user,
                 to: msg.to || msg.to_user,
                 content: msg.content,
                 timestamp: msg.timestamp
-            })) : [];
+            }));
+        } else {
+            messages = [];
         }
     } catch (e) {
         messages = [];
